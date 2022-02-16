@@ -119,21 +119,37 @@ def getFilesArray(category, biometric):
     s2_path = ''
     count = 0
 
+        
     count, s1_path, s2_path = getNoSamples(category,biometric)
     for file in os.listdir(s1_path):
         if not "ipynb" in file:
             if ".png" or ".jpg" in file:
-                _class = file.split("_")[0]
-                if len(_class.split("s"))>1:
-                       _class = _class.split("s")[1]
+                
+                splitted = file.split("_")
+                if category == const.GENERATED:
+                    personId = splitted[0].split("s")[1]
+                    hand = splitted[2]
+                    
+                if category == const.ROI:
+                    personId = splitted[0]
+                    hand = splitted[1].split(".")[0]
+        
+                _class = personId + '_' + hand
                 files.append([s1_path, file, "s1.",_class,category,biometric,const.S1])
                        
     for file in os.listdir(s2_path):
         if not "ipynb" in file:
             if ".png" or ".jpg" in file:
-                _class = file.split("_")[0]
-                if len(_class.split("s"))>1:
-                       _class = _class.split("s")[1]
+                splitted = file.split("_")
+                if category == const.GENERATED:
+                    personId = splitted[0].split("s")[1]
+                    hand = splitted[2]
+                    
+                if category == const.ROI:
+                    personId = splitted[0]
+                    hand = splitted[1].split(".")[0]
+        
+                _class = personId + "_" + hand
                 files.append([s2_path, file, "s2.",_class,category,biometric,const.S2])
     
     return files
@@ -181,19 +197,34 @@ def createDirectoryArch(biometric):
     # Verificare si creare directoare pentru fiecare clasa de imagini
     for _class in range(1,161):
 
-        train_class = train_dir + str(_class) + "/"
-        valid_class = valid_dir + str(_class) + "/"
-        test_class = test_dir + str(_class) + "/"
-        all_class = all_dir + str(_class) + "/"
+        train_class_L = train_dir + str(_class) + "_L/"
+        train_class_R = train_dir + str(_class) + "_R/"
+        valid_class_L = valid_dir + str(_class) + "_L/"
+        valid_class_R = valid_dir + str(_class) + "_R/"
+        test_class_L = test_dir + str(_class) + "_L/"
+        test_class_R = test_dir + str(_class) + "_R/"
+        all_class_L = all_dir + str(_class) + "_L/"
+        all_class_R = all_dir + str(_class) + "_R/"
 
-        if not os.path.isdir(train_class):
-            os.mkdir(train_class)
-        if not os.path.isdir(valid_class):
-            os.mkdir(valid_class)
-        if not os.path.isdir(test_class):
-            os.mkdir(test_class)
-        if not os.path.isdir(all_class):
-            os.mkdir(all_class)
+        if not os.path.isdir(train_class_L):
+            os.mkdir(train_class_L)
+        if not os.path.isdir(train_class_R):
+            os.mkdir(train_class_R)
+            
+        if not os.path.isdir(valid_class_L):
+            os.mkdir(valid_class_L)
+        if not os.path.isdir(valid_class_R):
+            os.mkdir(valid_class_R)
+            
+        if not os.path.isdir(test_class_L):
+            os.mkdir(test_class_L)
+        if not os.path.isdir(test_class_R):
+            os.mkdir(test_class_R)
+            
+        if not os.path.isdir(all_class_L):
+            os.mkdir(all_class_L)
+        if not os.path.isdir(all_class_R):
+            os.mkdir(all_class_R)
             
     
     
@@ -207,6 +238,14 @@ def createDataset(biometric, files, train_ratio=0, valid_ratio=0, test_ratio=0):
     
     createDirectoryArch(biometric)
 
+#['/home/leonard/Desktop/PyProjects/palm-cnn/FYODB/Generated_Images/Session1/Palm/',
+# 's63_9_L_S1.jpg',
+# 's1.',
+# '63_L',
+# 33,
+# 44,
+# 101]
+ 
     # Copierea sample-urilor din baza de date in setul de date complet (All)
     for file in files:
         file_path = file[0]
@@ -223,22 +262,41 @@ def createDataset(biometric, files, train_ratio=0, valid_ratio=0, test_ratio=0):
     # aferente seturilor de date de antrenare, validare si testare conform proportiilor
     for _class in range(1,161):
         clear_dir_files = []
-        src_file_dir = dataset_dir + const.ALL_DIR + str(_class) + "/"
-        src_file_path = [src_file_dir + file for file in os.listdir(src_file_dir) if (not "ipynb" in file) and (".png" or ".jpg" in file)]
-        random.shuffle(src_file_path)
+        src_file_dir_L = dataset_dir + const.ALL_DIR + str(_class) + "_L/"
+        src_file_dir_R = dataset_dir + const.ALL_DIR + str(_class) + "_R/"
+        
+        src_file_path_L = [src_file_dir_L + file for file in os.listdir(src_file_dir_L) if (not "ipynb" in file) and (".png" or ".jpg" in file)]
+        src_file_path_R = [src_file_dir_R + file for file in os.listdir(src_file_dir_R) if (not "ipynb" in file) and (".png" or ".jpg" in file)]
+        
+        random.shuffle(src_file_path_L)
+        random.shuffle(src_file_path_R)
     
         ### Training samples ###       
-        for file in src_file_path[:int(train_ratio * len(src_file_path))]:
+        for file in src_file_path_L[:int(train_ratio * len(src_file_path_L))]:
             if os.path.isfile(file) and (".jpg" in file or ".png" in file):
-                shutil.copy(file, dataset_dir + const.TRAIN_DIR + str(_class) + "/")
+                shutil.copy(file, dataset_dir + const.TRAIN_DIR + str(_class) + "_L/")
+                
+        for file in src_file_path_R[:int(train_ratio * len(src_file_path_R))]:
+            if os.path.isfile(file) and (".jpg" in file or ".png" in file):
+                shutil.copy(file, dataset_dir + const.TRAIN_DIR + str(_class) + "_R/")
+
         ### Validation samples ###       
-        for file in src_file_path[int(train_ratio * len(src_file_path)):int((train_ratio + valid_ratio) * len(src_file_path))]:
+        for file in src_file_path_L[int(train_ratio * len(src_file_path_L)):int((train_ratio + valid_ratio) * len(src_file_path_L))]:
             if os.path.isfile(file) and (".jpg" in file or ".png" in file):
-                shutil.copy(file, dataset_dir + const.VALID_DIR + str(_class) + "/")
+                shutil.copy(file, dataset_dir + const.VALID_DIR + str(_class) + "_L/")
+       
+        for file in src_file_path_R[int(train_ratio * len(src_file_path_R)):int((train_ratio + valid_ratio) * len(src_file_path_R))]:
+            if os.path.isfile(file) and (".jpg" in file or ".png" in file):
+                shutil.copy(file, dataset_dir + const.VALID_DIR + str(_class) + "_R/")
+
         ### Testing samples ###     
-        for file in src_file_path[int((train_ratio + valid_ratio) * len(src_file_path)):int((train_ratio + valid_ratio + test_ratio) * len(src_file_path))]:
+        for file in src_file_path_L[int((train_ratio + valid_ratio) * len(src_file_path_L)):int((train_ratio + valid_ratio + test_ratio) * len(src_file_path_L))]:
             if os.path.isfile(file) and (".jpg" in file or ".png" in file):
-                shutil.copy(file, dataset_dir + const.TEST_DIR + str(_class) + "/")
+                shutil.copy(file, dataset_dir + const.TEST_DIR + str(_class) + "_L/")
+        
+        for file in src_file_path_R[int((train_ratio + valid_ratio) * len(src_file_path_R)):int((train_ratio + valid_ratio + test_ratio) * len(src_file_path_R))]:
+            if os.path.isfile(file) and (".jpg" in file or ".png" in file):
+                shutil.copy(file, dataset_dir + const.TEST_DIR + str(_class) + "_R/")                
         
 
 
@@ -275,25 +333,28 @@ def datasetCounter(trainDir,validDir,testDir):
     print("Validation dateset: ", count_valid)
 
     
-def extractFeatures(model, directory, sample_count):
-    datagen = ImageDataGenerator(rescale=1./255)
-    batch_size = 20
+def extractFeatures(model, generator, out_shape, batch_size):
+#    extractFeatures(conv_base_resnet,
+#                   palm_train_generator,
+#                   (6400*train_ratio,) + resnet_out_shape,
+#                   batch_size
+#                  )
+
     
-    features = np.zeros(shape=(sample_count,4,4,512))
-    labels = np.zeros(shape=(sample_count,160))
+    features = np.zeros(shape=out_shape)
+    labels = np.zeros(shape=(out_shape[0],160))
     
-    generator = datagen.flow_from_directory(
-        directory,
-        target_size=(150,150),
-        batch_size = batch_size,
-        class_mode = 'categorical')
-    
+
     i = 0
     for inputs_batch,labels_batch in generator:
+        
         features_batch = model.predict(inputs_batch)
+        
         features[i * batch_size : (i + 1) * batch_size] = features_batch
         labels[i* batch_size : (i + 1) * batch_size] = labels_batch
+        
         i += 1
-        if i * batch_size >= sample_count:
+        if i * batch_size >= out_shape[0]:
             break
+            
     return features, labels
